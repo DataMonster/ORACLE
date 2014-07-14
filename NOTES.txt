@@ -1,0 +1,240 @@
+*****note 2.1*****
+#1.find the system time:
+SQL>select to_char(sysdate, 'yyyymmdd hh24:mi:ss') from dual;
+
+SQL>select to_char( systimestamp, 'yyyymmdd jj24:mi:ssff6') from dual;
+
+#2. ROWID & ROWNUM
+THESE TWO EXIST IN EVERY ROW.
+
+#3. DDL (DATA DEFINE LANGUAGE)
+(1) CREATE TABLE STUDENT (SNO NUMBER(6), SNAME VARCHAR2(10), BIRTHDAY DATE);
+(2) ALTER TABLE STUDENT ADD TELE VARCHAR2(11);
+(3) ALTER TABLE STUDENT MODIFY TELE VARCHAR(20);
+(4) ALTER DROP TABLE  STUDENT DROP COLUMN TELE;
+
+CHECK TABLE SCHEMA:
+SQL>DESC STUDENT;
+
+#4 DATA
+SQL>INSERT INTO STUDENT VALUES(1,'A','31-01-13')
+SQL>SELECT SYSDATE FROM DUAL;
+SQL>alter session set nls_date_format = 'yyyymmdd';
+SQL>insert into student values (2,'','','');
+//for date, use to_date('19891001','yyyymmdd')
+SQL>select * from student where sname is null;
+SQL>clear screen
+SQL>create table student2 as select * from student;
+SQL>create table student3 as select * from student where 1>2;
+SQL>truncate table student2;
+//keep the table rowname but delete all data;
+SQL>delete from student2;
+//delete + commit = truncate, and delete will be writen on log... so, truncate cannot be revised.
+SQL>insert into student2 select * from student where;
+SQL>update student2 set sname = 'AA' where sno = 3;
+SQL>delete student where sno = 4;
+
+SQL> select count(*) from student2;
+SQL> select count(*) from student2 where sanme is not null;
+SQL> select * from student2 where upper(sname) = 'A';
+SQL> update student2 set sname = 'A''B' where sno =5;
+//'' for the data which contains '
+SQL> select * from student2 where sname like 'A%';
+SQL> select * from student2 where length(sanme) =2;
+SQL> select * from student2 order by sno desc, sname asc;
+SQL> select * from student2 order by 1 desc, 2 asc;
+SQL> select sno S1, sname "S 1" from student;
+SQL> drop table student purge; // purge means permanently delete;
+//must use "", not '' for alias with space;
+SQL> commit;
+SQL> select * from tab; // check all tables;
+SQL> desc table; //see the structure of a table;
+SQL> alter table newstudent rename column sno to newsno;
+
+SQL> select sno, sum(score) from Grade group by sno having (avg(score)>60);
+
+#5 sql operator
+SQL> select 'the student num:'||sno||'name is:'|| sname from student2;
+
+#6 functions return single line:
+(1)string operator:
+SQL>select initcap('hello')from dual;
+(2)upper,length,substr('abcd',2,1), replace('jack and jue', 'b')
+(3)select chr(23) from dual; //return acsii code
+(4)select ascii('a') from dual;
+(5)lpad,rpad
+(6)data time function:
+select add_months(sysdate, 6)from dual;
+select months_between(sysdate, todate('20090605','yyyymmdd') from dual;
+select extract(year/month.day from sysdate) from dual;
+select last_day(sysdate) from dual;
+select sno, add_month(birthday,12)from student;
+select floor(sysdate - birthday) from student;
+(7)number function:
+floor, round, trunc
+select round(to_date('20100611','yyyymmdd'), 'year')from dual;
+//round to 2010-01-01, and can round 'month'
+//if change to trunc, just keep the year
+round(12.36,1)
+round(12.36,-1)
+trunc(12.36,1)
+(8)to_char to_date to_number
+SQL>select to_char(33,'L99.99') from dual;
+//L is local money symbol $
+(9)select nvl(null,1) from dual;
+select nvl2(11,22,33) from dual;
+select nullif(2,2) from dual; //= is null, != is first
+
+#7.equal values connections:
+(1)select s.sno, s.sname,a.sno,a.zz from student s, address a where s.sno = a.sno;
+(2)select s.sno,s.sname,a.sno,a.zz from student s inner join address a on s.sno = a.sno;
+
+!!left outer join:
+(1)select s.sno, s.sname,a.sno,a.zz from student s, address a where s.sno = a.sno(+);
+(2)select s.sno,s.sname,a.sno,a.zz from student s left outer join address a on s.sno = a.sno;
+
+!!right outer join:
+(1)select s.sno, s.sname,a.sno,a.zz from student s, address a where s.sno(+) = a.sno;
+(2)select s.sno,s.sname,a.sno,a.zz from student s right outer join address a on s.sno = a.sno;
+
+!!full outer join
+select s.sno,s.sname,a.sno,a.zz from student s full outer join address a on s.sno = a.sno;
+
+#8 Set operator
+(1)union: no existance of the duplicated ones, 
+union all: keep the duplicated ones
+(2)minus:
+(3)intersect:choose the same.
+
+#9 rename:
+rename student to newstudent;
+
+************************************************************************
+2.2
+************************************************************************
+#1.select,from,where:
+from->where->group->having->select->order by
+#2.all join:
+select s.sno,sname,a.sno from student s, address a;
+
+#3.example:select * from student where exists(select * from address where zz = 'NY');
+!!exist return true or false: if it is true, select all from student;
+
+#4.select case when
+(1)case
+	when condition1 then action1
+	when condition2 then action2
+	...
+	else actionN
+  END CASE
+(2)case selector
+	when value1 then action1
+	when value2 then action2
+	...
+	else actionN
+  end [case]
+
+example1:
+	select case
+		when substr('20090310',5,2) = '01' then 'Jan'
+		when substr('20090310',5,2) = '02' then 'feb'
+		else null
+		end
+	from dual;
+>JAN
+
+example2:selec case substr('20090310',5,2)
+		 when '01' then 'jan'
+		 when '02' then 'feb'
+		else null
+	end
+	from dual;
+>feb
+
+!!!example3:
+	update tablescore set grade = (
+	select grade from
+	(select sno,
+	case
+		when score >=90 then 'A'
+		when score >=80 then 'B'
+		when score >=70 then 'C'
+		when score >=60 then 'D'
+		else 'F'
+	end grade
+	from tablescore) a
+	where  tablescore.sno = a.sno
+	);
+
+#5 analyze function
+(1)row_number -- if two value is equal, the number is different
+select sno,km,score,row_number() over(order by score desc) from MYSCORE;
+(2)rank  --two value is equal, the number is equal, but next will plus 2.
+select sno,km,score,rank() over(order by score desc) from MYSCORE;
+(3)dense_rank --two value is equal, the number is equal, but next will plus 1.
+select sno,km,score,dense_rank() over(order by score desc) from MYSCORE;
+
+#6. decode
+decode(value, if 1,then1,if2,then2....else)
+select id, name, decode(sex, 1, 'M', 2, 'F') from student;
+----sign() negetive is -1, 0 is 0, positive is 1
+select month, devode( sign(sales_tv - sales_comupter),1 , sales_tv, 0 ,salves_tv, -1, sales_computer) from sales;
+
+#7 row-column exchange
+select name, sum(decode(a.season,'01', a.sale,0)) season one,
+sum(decode(a.season,'02', a.sale,0)) season two,
+sum(decode(a.season,'03', a.sale,0)) season three,
+sum(decode(a.season,'04', a.sale,0)) season one
+from sales a
+group by a.name
+
+#rownum realize top function: rownum can only with <, <=; can not with >,>=,=;
+simetimes can work with between/and
+>select * from xxxx where rownum <3;
+>select * from xxxx where rownum between 1 and 5; #can only from 1 to x, not from 2 to x.
+
+select * from xxx where rownum<=5
+minus
+select * from xxx where rownum<=2;
+
+OR
+
+select * from (select xxxx.*, rownum rn from xxxx;) where rn <=5 and rn > =3 # we have the table with rownum)
+
+#rowid: has database object number, data file number, data section number, row number.
+select * from student where rowid = 'AAARWVASEDADADAA';
+
+#group by grouping sets((lists),(lists)) !!!!example!!!!-01:6:33-lecture 2.2
+sql>
+select case
+when a.deptno is null then 
+	'sum'
+when a.deptno is not null and a.empno is null then
+	'sub sum'
+else 
+	'' || a.deptno
+end deptno,
+	a.empno, a.ename,
+	sum(a.sal) total_sal
+from scott.emp a where asl>2000 group by grouping sets((a.deptno),(a.emptno, a.empno, a.ename).());
+#check!
+
+
+
+Lecture 4
+#constrain
+check all constrains:
+select * from user_cons_columns;
+#add default value:
+create table xxx (aa number, xm varchar2(8), gz number(8,2) default 1000);
+insert into xxx values(1,'a',default);
+
+
+Lecture 6 LOCK
+#check all locks:
+select * from v$lock;
+
+
+
+
+
